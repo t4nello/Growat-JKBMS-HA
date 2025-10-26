@@ -1,0 +1,565 @@
+esphome:
+  name: "growat-esp"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+api:
+
+logger:
+  level: WARN
+  
+ota:
+  platform: esphome
+
+web_server:
+  port: 80
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+uart:
+  id: modbus_1
+  tx_pin: 16
+  rx_pin: 17
+  baud_rate: 9600
+  stop_bits: 1
+  parity: NONE
+  data_bits: 8
+
+modbus:
+  id: modbus1
+
+modbus_controller:
+  - id: reader1
+    address: 0x01
+    modbus_id: modbus1
+    setup_priority: -10
+    update_interval: 10s
+
+output:
+  - platform: ledc
+    pin: GPIO2
+    id: WIFI_LED
+
+light:
+  - platform: monochromatic
+    output: WIFI_LED
+    id: status_led
+    default_transition_length: 0s
+    effects:
+      - pulse:
+          name: "Slow Pulse"
+          transition_length: 2s
+          update_interval: 2s
+      - pulse:
+          name: "Fast Pulse"
+          transition_length: 0.5s
+          update_interval: 0.5s
+
+sensor:
+  # Free RAM
+  - platform: template
+    name: "Growatt Free RAM"
+    lambda: "return (float)esp_get_free_heap_size() / 1024.0;"
+    update_interval: 10s
+    unit_of_measurement: "kB"
+    accuracy_decimals: 1
+    entity_category: diagnostic  
+
+  # WiFi Signal 
+  - platform: wifi_signal
+    name: "WiFi Signal Strength"
+    update_interval: 10s       
+
+# ============= Statuses =================  
+
+  # Inverter Status
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Status Raw"
+    address: 0
+    register_type: read
+    value_type: S_WORD
+
+  # Warning bit
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Warning Raw"
+    address: 41
+    register_type: read
+    value_type: U_DWORD_R
+  
+    # Warning Value
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Warning Value"
+    address: 43
+    register_type: read
+    value_type: U_WORD
+  
+  # Fault Code
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Fault Raw"
+    address: 40
+    register_type: read
+    value_type: S_WORD
+
+
+# ============= Temperatures =================  
+
+  # Inverter Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Inverter Temperature"
+    address: 25
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    
+  # PV Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV Temperature"
+    address: 32
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    
+  # DC-DC Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt DC-DC Temperature"
+    address: 26
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+
+  # Buck 1 Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Buck 1 Temperature"
+    address: 32
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+  
+    # Buck 2 Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Buck 2 Temperature"
+    address: 33
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+
+
+# ============= AC Output =================  
+  # AC Output Power
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Output Active Power"
+    address: 9
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+    
+  # AC Output Voltage  
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt AC Output Voltage"
+    address: 22
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    
+    
+  # AC Output Current
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Output Current"
+    address: 34
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 1
+    
+    
+  # AC Output Frequency
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Output Frequency"
+    address: 23
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.01
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    accuracy_decimals: 0
+    
+# ============= PV1 ================= 
+  # PV1 Voltage
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Voltage"
+    address: 1
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    
+  # PV1 Current
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Current"
+    address: 7
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 1
+    
+  # PV1 Power  
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Power"
+    address: 3
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+
+# ============= PV2 ================= 
+  # PV2 Voltage
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Voltage"
+    address: 2
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    
+  # PV2 Current
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Current"
+    address: 8
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 1
+    
+  # PV2 Power  
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Power"
+    address: 5
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+    
+    
+# ============= Battery ================= 
+  # Battery Voltage
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Battery Voltage"
+    address: 17
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.01
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 2
+    
+    
+  # Battery Soc
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Battery SoC"
+    address: 18
+    register_type: read
+    value_type: U_WORD
+    unit_of_measurement: "%"
+    device_class: battery
+    accuracy_decimals: 0
+    
+    
+# ============= FANS ================= 
+  # MPPT Fan
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt MPPT Fan Speed"
+    address: 81
+    register_type: read
+    value_type: U_WORD
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    
+    
+  # Inwerter Fan
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Inverter Fan Speed"
+    address: 82
+    register_type: read
+    value_type: U_WORD
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    
+    
+# ============= Energy ================= 
+  # PV1 Today Energy
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Energy Today"
+    address: 48
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "kWh"
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+    
+    
+  # PV1 Total Energy
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Energy Total"
+    address: 50
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "kWh"
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+
+  # PV2 Today Energy
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Energy Today"
+    address: 52
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "kWh"
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+    
+    
+  # PV2 Total Energy
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Energy Total"
+    address: 54
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "kWh"
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+    
+    
+# ============= Load ================= 
+  # Load
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Load Percentage"
+    address: 27
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+
+# ============= Work Time ================= 
+  # Work Time
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Work Time"
+    address: 30
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.5
+    unit_of_measurement: "s"
+    device_class: duration
+    accuracy_decimals: 0
+    
+
+interval:
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            not:
+              wifi.connected: {}
+          then:
+            - light.turn_on:
+                id: status_led
+                effect: "Slow Pulse"
+          else:
+            - if:
+                condition:
+                  not:
+                    api.connected: {}
+                then:
+                  - light.turn_on:
+                      id: status_led
+                      effect: "Fast Pulse"
+                else:
+                  - light.turn_on:
+                      id: status_led
+                      brightness: 100%
+                      effect: none
+
+text_sensor:
+  # Run States    
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Run State"
+    address: 0
+    register_type: read
+    register_count: 1
+    response_size: 2
+    raw_encode: HEXBYTES
+    lambda: |-
+      uint16_t value = modbus_controller::word_from_hex_str(x, 0);
+      const char* state;
+      switch (value) {
+        case 0: state = "Standby"; break;
+        case 1: state = "PV & Grid Supporting Loads"; break;
+        case 2: state = "Battery Discharging"; break;
+        case 3: state = "Fault"; break;
+        case 4: state = "Flash Mode"; break;
+        case 5: state = "PV Charging"; break;
+        case 6: state = "Grid Charging"; break;
+        case 7: state = "PV & Grid Charging"; break;
+        case 8: state = "PV & Grid Charging + Grid Bypass"; break;
+        case 9: state = "PV Charging + Grid Bypass"; break;
+        case 10: state = "Grid Charging + Grid Bypass"; break;
+        case 11: state = "Grid Bypass"; break;
+        case 12: state = "PV Charging + Loads Supporting"; break;
+        case 13: state = "Export to Grid"; break;
+        default: state = "Unknown"; break;
+      }
+      return {state};
+
+  # Warning States
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Warning State"
+    address: 41
+    register_type: read
+    register_count: 1
+    response_size: 2
+    raw_encode: HEXBYTES
+    lambda: |-
+      uint16_t value = modbus_controller::word_from_hex_str(x, 0);
+      const char* state;
+  
+      switch (value) {
+        case 1: state = "Fan lock"; break;
+        case 2: state = "Over Temperature"; break;
+        case 3: state = "Battery Overcharged"; break;
+        case 4: state = "Battery Low"; break;
+        case 7: state = "Over Load"; break;
+        case 10: state = "Output Power Derating"; break;
+        case 12: state = "Solar Stop due to Low Battery"; break;
+        case 13: state = "Solar Stop due to High PV"; break;
+        case 14: state = "Solar Stop due to Overload"; break;
+        case 15: state = "Grid Input Different Parameters"; break;
+        case 16: state = "Grid Phase Error"; break;
+        case 17: state = "Grid Phase Loss"; break;
+        case 18: state = "Buck Over Current"; break;
+        case 19: state = "Battery Disconnected"; break;
+        case 20: state = "BMS Communication Error"; break;
+        case 21: state = "PV Power Insufficient"; break;
+        case 22: state = "No Battery Parallel Allowed"; break;
+        case 25: state = "Parallel Inverter Capacity Mismatch"; break;
+        case 33: state = "BMS Communication Lost"; break;
+        case 34: state = "BMS Cell Over Voltage"; break;
+        case 35: state = "BMS Cell Under Voltage"; break;
+        case 36: state = "BMS Total Over Voltage"; break;
+        case 37: state = "BMS Total Under Voltage"; break;
+        case 38: state = "BMS Discharge Over Current"; break;
+        case 39: state = "BMS Charge Over Current"; break;
+        case 40: state = "Battery Over Temperature Discharge"; break;
+        case 41: state = "Battery Over Temperature Charge"; break;
+        case 42: state = "MOSFET Over Temperature"; break;
+        case 43: state = "Battery Over Temperature"; break;
+        case 44: state = "Battery Temperature"; break;
+        case 45: state = "System Shutdown"; break;
+        default: state = "Unknown"; break;
+      }
+  
+      return {state};
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time    

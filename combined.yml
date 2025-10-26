@@ -1,0 +1,878 @@
+substitutions:
+  name: esp32-pv
+  device_description: "Monitor and control a JK-BMS and GROWATT Inverter"
+  external_components_source: github://syssi/esphome-jk-bms@main
+  bms0_mac_address: C8:47:80:39:18:E0
+  bms0_protocol_version: JK02_32S
+
+esphome:
+  name: ${name}
+  comment: ${device_description}
+  min_version: 2024.6.0
+  project:
+    name: "syssi.esphome-jk-bms"
+    version: 2.2.0
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+wifi:
+  ssid: "123"
+  password: "12312213"
+
+web_server:
+  port: 80
+
+ota:
+  platform: esphome
+  on_begin:
+    then:
+      - switch.turn_off: ble_client_switch0
+      - logger.log: "BLE connection suspended for OTA update"
+
+logger:
+  level: INFO
+  logs:
+    esp32_ble_tracker: INFO
+    esp32_ble_client: INFO
+
+api:
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time    
+
+uart:
+  id: modbus_1
+  tx_pin: 16
+  rx_pin: 17
+  baud_rate: 9600
+  stop_bits: 1
+  parity: NONE
+  data_bits: 8
+
+modbus:
+  id: modbus1
+
+modbus_controller:
+  - id: reader1
+    address: 0x01
+    modbus_id: modbus1
+    setup_priority: -10
+    update_interval: 10s
+
+output:
+  - platform: ledc
+    pin: GPIO2
+    id: WIFI_LED
+
+light:
+  - platform: monochromatic
+    output: WIFI_LED
+    id: status_led
+    default_transition_length: 0s
+    effects:
+      - pulse:
+          name: "Slow Pulse"
+          transition_length: 2s
+          update_interval: 2s
+      - pulse:
+          name: "Fast Pulse"
+          transition_length: 0.5s
+          update_interval: 0.5s
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: false
+
+ble_client:
+  - mac_address: ${bms0_mac_address}
+    id: client0
+
+jk_bms_ble:
+  - ble_client_id: client0
+    protocol_version: ${bms0_protocol_version}
+    throttle: 5s
+    id: bms0
+
+binary_sensor:
+  - platform: jk_bms_ble
+    balancing:
+      name: "BMS balancing"
+    charging:
+      name: "BMS charging"
+    discharging:
+      name: "BMS discharging"
+    heating:
+      name: "BMS heating"
+    online_status:
+      name: "BMS online status"
+
+button:
+  - platform: jk_bms_ble  
+    jk_bms_ble_id: bms0
+    retrieve_settings:
+      name: "BMS retrieve settings"
+      id: retrieve_resistance_bms0
+    retrieve_device_info:
+      name: "BMS retrieve device info"
+
+sensor:
+# ------------------ DIAGNOSTICS ------------------ #
+# Free RAM
+  - platform: template
+    name: "${name} Free RAM"
+    lambda: "return (float)esp_get_free_heap_size() / 1024.0;"
+    update_interval: 10s
+    unit_of_measurement: "kB"
+    accuracy_decimals: 1
+    entity_category: diagnostic  
+
+# Wifi signal Strenght
+  - platform: wifi_signal
+    name: "WiFi signal strenght"
+    update_interval: 10s    
+
+# ------------------ JK BMS ------------------ #
+# Sumaryczna moc (W)
+  - platform: template
+    name: "BMS Total power"
+    id: Laczna_moc
+    unit_of_measurement: "W"
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      return id(BMS_power).state; 
+
+
+# Sumaryczna moc oddana (W)
+  - platform: template
+    name: "BMS Total discharging power"
+    id: Laczna_moc_oddawana
+    unit_of_measurement: "W"
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      return id(BMS_discharging_power).state;
+    
+
+# Sumaryczna moc przyjęta (W)
+  - platform: template
+    name: "BMS Total Charging power"
+    id: Laczna_moc_przyjmowana
+    unit_of_measurement: "W"
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      return id(BMS_charging_power).state; 
+
+
+# Całkowita energia oddana przez cały system (kWh)
+  - platform: integration
+    name: "BMS discharging total"
+    sensor: Laczna_moc_oddawana
+    time_unit: h
+    restore: true
+    icon: mdi:counter
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+    unit_of_measurement: kWh  
+
+# Całkowita energia przyjęta przez cały system (kWh)
+  - platform: integration
+    name: "BMS charging total"
+    sensor: Laczna_moc_przyjmowana
+    time_unit: h
+    restore: true
+    icon: mdi:counter
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+    unit_of_measurement: kWh  
+
+# Energia oddana dzisiaj dla całego systemu
+  - platform: total_daily_energy
+    name: "BMS discharging today"
+    restore: true
+    icon: mdi:counter
+    power_id: Laczna_moc_oddawana
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+    unit_of_measurement: kWh
+    device_class: energy 
+
+# Energia przyjęta dzisiaj dla całego systemu
+  - platform: total_daily_energy
+    name: "BMS charging today"
+    restore: true
+    icon: mdi:counter
+    power_id: Laczna_moc_przyjmowana
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.001
+    unit_of_measurement: kWh
+    device_class: energy 
+
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms0
+    min_cell_voltage:
+      name: "BMS min cell voltage"
+    max_cell_voltage:
+      name: "BMS max cell voltage"
+    min_voltage_cell:
+      name: "BMS min voltage cell"
+    max_voltage_cell:
+      name: "BMS max voltage cell"
+    delta_cell_voltage:
+      name: "BMS delta cell voltage"
+    average_cell_voltage:
+      name: "BMS average cell voltage"
+    cell_voltage_1:
+      name: "BMS cell voltage 1"
+    cell_voltage_2:
+      name: "BMS cell voltage 2"
+    cell_voltage_3:
+      name: "BMS cell voltage 3"
+    cell_voltage_4:
+      name: "BMS cell voltage 4"
+    cell_voltage_5:
+      name: "BMS cell voltage 5"
+    cell_voltage_6:
+      name: "BMS cell voltage 6"
+    cell_voltage_7:
+      name: "BMS cell voltage 7"
+    cell_voltage_8:
+      name: "BMS cell voltage 8"
+    cell_voltage_9:
+      name: "BMS cell voltage 9"
+    cell_voltage_10:
+      name: "BMS cell voltage 10"
+    cell_voltage_11:
+      name: "BMS cell voltage 11"
+    cell_voltage_12:
+      name: "BMS cell voltage 12"
+    cell_voltage_13:
+      name: "BMS cell voltage 13"
+    cell_voltage_14:
+      name: "BMS cell voltage 14"
+    cell_voltage_15:
+      name: "BMS cell voltage 15"
+    cell_voltage_16:
+      name: "BMS cell voltage 16"
+
+    cell_resistance_1:
+      name: "BMS cell resistance 1"
+    cell_resistance_2:
+      name: "BMS cell resistance 2"
+    cell_resistance_3:
+      name: "BMS cell resistance 3"
+    cell_resistance_4:
+      name: "BMS cell resistance 4"
+    cell_resistance_5:
+      name: "BMS cell resistance 5"
+    cell_resistance_6:
+      name: "BMS cell resistance 6"
+    cell_resistance_7:
+      name: "BMS cell resistance 7"
+    cell_resistance_8:
+      name: "BMS cell resistance 8"
+    cell_resistance_9:
+      name: "BMS cell resistance 9"
+    cell_resistance_10:
+      name: "BMS cell resistance 10"
+    cell_resistance_11:
+      name: "BMS cell resistance 11"
+    cell_resistance_12:
+      name: "BMS cell resistance 12"
+    cell_resistance_13:
+      name: "BMS cell resistance 13"
+    cell_resistance_14:
+      name: "BMS cell resistance 14"
+    cell_resistance_15:
+      name: "BMS cell resistance 15"
+    cell_resistance_16:
+      name: "BMS cell resistance 16"
+    total_voltage:
+      name: "BMS total voltage"
+      id: BMS_total_voltage
+    current:
+      name: "BMS current"
+      id: BMS_current
+    heating_current:
+      name: "BMS heating current"
+      id: BMS_heating_current
+    power:
+      name: "BMS power"
+      id: BMS_power
+    charging_power:
+      name: "BMS charging power"
+      id: BMS_charging_power
+    discharging_power:
+      name: "BMS discharging power"
+      id: BMS_discharging_power
+    temperature_sensor_1:
+      name: "BMS temperature sensor 1"
+    temperature_sensor_2:
+      name: "BMS temperature sensor 2"
+    temperature_sensor_3:
+       name: "BMS temperature sensor 3"
+    temperature_sensor_4:
+       name: "BMS temperature sensor 4"
+    power_tube_temperature:
+      name: "BMS power tube temperature"
+    state_of_charge:
+      name: "BMS state of charge"
+    capacity_remaining:
+      name: "BMS capacity remaining"
+    total_battery_capacity_setting:
+      name: "BMS total battery capacity setting"
+    charging_cycles:
+      name: "BMS charging cycles"
+    total_charging_cycle_capacity:
+      name: "BMS total charging cycle capacity"
+    total_runtime:
+      name: "BMS total runtime"
+    balancing_current:
+      name: "BMS balancing current"
+    errors_bitmask:
+      name: "BMS errors bitmask"
+
+# ------------------ GROWATT PV ------------------ #
+# ============= Statuses =================  
+
+  # Inverter Status
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Status Raw"
+    address: 0
+    register_type: read
+    value_type: S_WORD
+
+  # Warning bit
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Warning Raw"
+    address: 41
+    register_type: read
+    value_type: U_DWORD_R
+  
+    # Warning Value
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Warning Value"
+    address: 43
+    register_type: read
+    value_type: U_WORD
+  
+  # Fault Code
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Fault Raw"
+    address: 40
+    register_type: read
+    value_type: S_WORD
+
+
+# ============= Temperatures =================  
+
+  # Inverter Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Inverter Temperature"
+    address: 25
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    
+  # PV Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV Temperature"
+    address: 32
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    
+  # DC-DC Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt DC-DC Temperature"
+    address: 26
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+
+  # Buck 1 Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Buck 1 Temperature"
+    address: 32
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+  
+    # Buck 2 Temperature
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Buck 2 Temperature"
+    address: 33
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+
+
+# ============= AC Output =================  
+  # AC Output Power
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Output Active Power"
+    address: 9
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+    
+  # AC Output Voltage  
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt AC Output Voltage"
+    address: 22
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    
+    
+  # AC Output Current
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Output Current"
+    address: 34
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 1
+    
+    
+  # AC Output Frequency
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Output Frequency"
+    address: 23
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.01
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    accuracy_decimals: 0
+    
+# ============= PV1 ================= 
+  # PV1 Voltage
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Voltage"
+    address: 1
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    
+  # PV1 Current
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Current"
+    address: 7
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 1
+    
+  # PV1 Power  
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Power"
+    address: 3
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+
+# ============= PV2 ================= 
+  # PV2 Voltage
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Voltage"
+    address: 2
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    
+  # PV2 Current
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Current"
+    address: 8
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 1
+    
+  # PV2 Power  
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Power"
+    address: 5
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+    
+    
+# ============= Battery ================= 
+  # Battery Voltage
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Battery Voltage"
+    address: 17
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.01
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 2
+    
+    
+  # Battery Soc
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Battery SoC"
+    address: 18
+    register_type: read
+    value_type: U_WORD
+    unit_of_measurement: "%"
+    device_class: battery
+    accuracy_decimals: 0
+    
+    
+# ============= FANS ================= 
+  # MPPT Fan
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt MPPT Fan Speed"
+    address: 81
+    register_type: read
+    value_type: U_WORD
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    
+    
+  # Inwerter Fan
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Inverter Fan Speed"
+    address: 82
+    register_type: read
+    value_type: U_WORD
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    
+    
+# ============= Energy ================= 
+  # PV1 Today Energy
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Energy Today"
+    address: 48
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "kWh"
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+    
+    
+  # PV1 Total Energy
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV1 Energy Total"
+    address: 50
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "kWh"
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+
+  # PV2 Today Energy
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Energy Today"
+    address: 52
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "kWh"
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+    
+    
+  # PV2 Total Energy
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt PV2 Energy Total"
+    address: 54
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "kWh"
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
+    
+    
+# ============= Load ================= 
+  # Load
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Load Percentage"
+    address: 27
+    register_type: read
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+
+# ============= Work Time ================= 
+  # Work Time
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Growatt Work Time"
+    address: 30
+    register_type: read
+    value_type: U_DWORD
+    filters:
+      - multiply: 0.5
+    unit_of_measurement: "s"
+    device_class: duration
+    accuracy_decimals: 0
+
+switch:
+  - platform: jk_bms_ble
+    charging:
+      name: "BMS charging"
+    discharging:
+      name: "BMS discharging"
+    balancer:
+      name: "BMS balancer"
+
+  - platform: ble_client
+    ble_client_id: client0
+    name: "BMS enable bluetooth connection"
+    id: ble_client_switch0
+
+text_sensor:
+# ------------------ WIFI  ------------------ #
+  - platform: wifi_info
+    ip_address:
+      name: "${name} IP"
+    ssid:
+      name: "${name} SSID"
+    mac_address:
+      name: "${name} MAC"
+
+# ------------------ JK-BMS ------------------ #
+  - platform: jk_bms_ble
+    errors:
+      name: "BMS errors"
+    total_runtime_formatted:
+      name: "BMS total runtime formatted"
+    software_version:
+      name: "BMS software version"
+    hardware_version:
+      name: "BMS hardware version"
+# ------------------ GROWATT ------------------ #
+
+ # Run States    
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Run State"
+    address: 0
+    register_type: read
+    register_count: 1
+    response_size: 2
+    raw_encode: HEXBYTES
+    lambda: |-
+      uint16_t value = modbus_controller::word_from_hex_str(x, 0);
+      const char* state;
+      switch (value) {
+        case 0: state = "Standby"; break;
+        case 1: state = "PV & Grid Supporting Loads"; break;
+        case 2: state = "Battery Discharging"; break;
+        case 3: state = "Fault"; break;
+        case 4: state = "Flash Mode"; break;
+        case 5: state = "PV Charging"; break;
+        case 6: state = "Grid Charging"; break;
+        case 7: state = "PV & Grid Charging"; break;
+        case 8: state = "PV & Grid Charging + Grid Bypass"; break;
+        case 9: state = "PV Charging + Grid Bypass"; break;
+        case 10: state = "Grid Charging + Grid Bypass"; break;
+        case 11: state = "Grid Bypass"; break;
+        case 12: state = "PV Charging + Loads Supporting"; break;
+        case 13: state = "Export to Grid"; break;
+        default: state = "Unknown"; break;
+      }
+      return {state};
+
+  # Warning States
+  - platform: modbus_controller
+    modbus_controller_id: reader1
+    name: "Warning State"
+    address: 41
+    register_type: read
+    register_count: 1
+    response_size: 2
+    raw_encode: HEXBYTES
+    lambda: |-
+      uint16_t value = modbus_controller::word_from_hex_str(x, 0);
+      const char* state;
+  
+      switch (value) {
+        case 1: state = "Fan lock"; break;
+        case 2: state = "Over Temperature"; break;
+        case 3: state = "Battery Overcharged"; break;
+        case 4: state = "Battery Low"; break;
+        case 7: state = "Over Load"; break;
+        case 10: state = "Output Power Derating"; break;
+        case 12: state = "Solar Stop due to Low Battery"; break;
+        case 13: state = "Solar Stop due to High PV"; break;
+        case 14: state = "Solar Stop due to Overload"; break;
+        case 15: state = "Grid Input Different Parameters"; break;
+        case 16: state = "Grid Phase Error"; break;
+        case 17: state = "Grid Phase Loss"; break;
+        case 18: state = "Buck Over Current"; break;
+        case 19: state = "Battery Disconnected"; break;
+        case 20: state = "BMS Communication Error"; break;
+        case 21: state = "PV Power Insufficient"; break;
+        case 22: state = "No Battery Parallel Allowed"; break;
+        case 25: state = "Parallel Inverter Capacity Mismatch"; break;
+        case 33: state = "BMS Communication Lost"; break;
+        case 34: state = "BMS Cell Over Voltage"; break;
+        case 35: state = "BMS Cell Under Voltage"; break;
+        case 36: state = "BMS Total Over Voltage"; break;
+        case 37: state = "BMS Total Under Voltage"; break;
+        case 38: state = "BMS Discharge Over Current"; break;
+        case 39: state = "BMS Charge Over Current"; break;
+        case 40: state = "Battery Over Temperature Discharge"; break;
+        case 41: state = "Battery Over Temperature Charge"; break;
+        case 42: state = "MOSFET Over Temperature"; break;
+        case 43: state = "Battery Over Temperature"; break;
+        case 44: state = "Battery Temperature"; break;
+        case 45: state = "System Shutdown"; break;
+        default: state = "Unknown"; break;
+      }
+  
+      return {state};
+
+interval:
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            not:
+              wifi.connected: {}
+          then:
+            - light.turn_on:
+                id: status_led
+                effect: "Slow Pulse"
+          else:
+            - if:
+                condition:
+                  not:
+                    api.connected: {}
+                then:
+                  - light.turn_on:
+                      id: status_led
+                      effect: "Fast Pulse"
+                else:
+                  - light.turn_on:
+                      id: status_led
+                      brightness: 100%
+                      effect: none
+
+  - interval: 2h
+    then:
+      - logger.log: "BMS0 resistance update"
+      - button.press: retrieve_resistance_bms0
