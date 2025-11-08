@@ -1,0 +1,14 @@
+show_name: true
+show_icon: true
+show_state: true
+type: glance
+state_color: true
+entities:
+  - entity: switch.esp32_pv_bms_charging
+    name: Ładowanie
+  - entity: switch.esp32_pv_bms_discharging
+    name: Rozładowanie
+  - entity: switch.esp32_pv_bms_enable_bluetooth_connection
+    name: Bluetooth
+  - entity: switch.esp32_pv_bms_balancer
+    name: Balansowanie

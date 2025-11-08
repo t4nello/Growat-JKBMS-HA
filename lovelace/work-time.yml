@@ -1,0 +1,15 @@
+type: custom:stack-in-card
+keep:
+  margin: false
+  box_shadow: false
+  background: false
+cards:
+  - type: grid
+    square: false
+    columns: 1
+    cards:
+      - type: markdown
+        content: >-
+          <center>Time:&nbsp;<b><font color=#3090C7>{{
+          states('sensor.esp32_pv_bms_total_runtime_formatted') | upper
+          }}</font>
