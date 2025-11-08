@@ -1,60 +1,105 @@
-# Growatt + JK-BMS ESPHome configurations
+# Growatt + JK-BMS ESPHome Configurations
 
-This repository contains ready-to-use ESPHome configurations to monitor and integrate a JK-BMS and a Growatt inverter.
+This repository contains ready-to-use ESPHome configurations for monitoring and integrating a **JK-BMS** and a **Growatt inverter**.
 
-- `jk-bms.yaml` — ESPHome configuration that connects to a JK-BMS via BLE using the community component.
-- `growatt.yaml` — ESPHome configuration reading Growatt inverter data over Modbus UART.
-- `combined.yml` — a combined configuration that includes both BLE (JK-BMS) and Modbus (Growatt) in a single firmware.
+* **`jk-bms.yaml`** — Connects to a JK-BMS via BLE using the community component.
+* **`growatt.yaml`** — Reads Growatt inverter data over Modbus UART.
+* **`combined.yml`** — Combines both BLE (JK-BMS) and Modbus (Growatt) in one firmware.
 
-Note: The JK-BMS integration/component used in these configurations is taken from: https://github.com/syssi/esphome-jk-bms
+> **Note:** The JK-BMS component used here is from [syssi/esphome-jk-bms](https://github.com/syssi/esphome-jk-bms).
 
-These files expose many entities (sensors, binary_sensors, text_sensors, switches, etc.) suitable for Home Assistant using ESPHome.
+These configurations expose numerous entities (sensors, binary sensors, text sensors, switches, etc.) for seamless integration with **Home Assistant** using **ESPHome**.
 
-## Quick facts
+---
 
-- Platform: ESP32 (`esp32dev` in the YAMLs).
-- ESPHome: minimum version is specified in the files (e.g. 2024.6.0) — check the top of each YAML.
-- External component for JK-BMS: `syssi/esphome-jk-bms` (referenced in `jk-bms.yaml` and `combined.yml`).
-- Growatt communication: Modbus over UART (default TX: GPIO16, RX: GPIO17, 9600 baud in these examples).
+## Quick Facts
 
-## Before flashing — things to update
+* **Platform:** ESP32 (`esp32dev`)
+* **Minimum ESPHome version:** As specified in each YAML (e.g., `2024.6.0`)
+* **External component:** `syssi/esphome-jk-bms`
+* **Growatt communication:** Modbus over UART
+  Default: TX → GPIO16, RX → GPIO17, Baud rate → 9600
 
-1. Wi-Fi credentials
-   - Some files use `!secret wifi_ssid` / `!secret wifi_password`. Add these to your `secrets.yaml` or replace them (not recommended to hard-code credentials).
+---
 
-2. BMS MAC address and protocol version
-   - Check the substitution entries in `jk-bms.yaml` and `combined.yml`:
-     - `bms0_mac_address` — set the MAC address of your JK-BMS BLE module.
-     - `bms0_protocol_version` — e.g. `JK02_32S` or another version matching your BMS.
+## Before Flashing — Update These Settings
 
-3. Modbus / UART settings
-   - Verify the UART pins (TX/RX) and baud rate match your physical connection to the Growatt inverter.
+1. **Wi-Fi credentials**
+   Add `wifi_ssid` and `wifi_password` to your `secrets.yaml`, or replace them directly (not recommended).
 
-4. External components
-   - The JK-BMS integration is referenced via `external_components: github://syssi/esphome-jk-bms@main`. You can pin a tag or change the source if required.
+2. **BMS MAC address and protocol version**
+   Edit substitutions in `jk-bms.yaml` or `combined.yml`:
 
-## What each file contains (summary)
+   ```yaml
+   substitutions:
+     bms0_mac_address: 'AA:BB:CC:DD:EE:FF'
+     bms0_protocol_version: 'JK02_32S'
+   ```
 
-- `jk-bms.yaml`:
-  - BLE client for the JK-BMS (via the syssi component).
-  - Sensors for cell voltages, cell resistances, currents, temperatures, SOC, energy, etc.
-  - Status LED, buttons, and energy counters.
+3. **Modbus / UART settings**
+   Ensure UART pins and baud rate match your physical Growatt inverter connection.
 
-- `growatt.yaml`:
-  - Modbus controller reading registers from the Growatt inverter.
-  - Sensors for AC power, voltage, current, frequency, temperatures, PV energies, battery state, fan speeds, etc.
-  - LED logic indicating connection state (WiFi / API).
+4. **External components**
+   The JK-BMS component is included via:
 
-- `combined.yml`:
-  - Combines both files into a single ESP firmware that handles both the BMS (BLE) and the Growatt Modbus interface.
+   ```yaml
+   external_components:
+     - source: github://syssi/esphome-jk-bms@main
+   ```
 
-## Lovelace cards:
-Custom lovelace cards compatible with my yamls based on https://github.com/syssi/esphome-jk-bms/discussions/230
-![Outcome of the lovelace](lovelace.png)
+   You may pin a specific version tag if desired.
 
-## Notes and best practices
+---
 
-- Back up your current configurations before making changes.
-- Test on a single device first (e.g., flash `jk-bms.yaml` alone, then `growatt.yaml`).
-- OTA updates temporarily suspend BLE connections in these examples (`ota.on_begin` has logic to turn off BLE client switch).
-- For troubleshooting, increase logging (`logger.level: DEBUG`) and check ESPHome logs.
+## File Overview
+
+### `jk-bms.yaml`
+
+* BLE client for JK-BMS (via syssi component)
+* Sensors: cell voltages, resistances, current, temperatures, SOC, energy, etc.
+* Includes status LED, buttons, and energy counters
+
+### `growatt.yaml`
+
+* Modbus controller for Growatt inverter registers
+* Sensors: AC power, voltage, current, frequency, temperature, PV energy, battery, fan speed, etc.
+* LED indicators for Wi-Fi and API connection status
+
+### `combined.yml`
+
+* Combines both BMS (BLE) and inverter (Modbus) monitoring in one ESPHome firmware
+
+---
+
+## Lovelace Dashboard Example
+
+Example Lovelace cards compatible with these YAMLs, based on [syssi/esphome-jk-bms discussion #230](https://github.com/syssi/esphome-jk-bms/discussions/230):
+
+![Lovelace Example](screenshots/lovelace/lovelace.png)
+
+---
+
+## Grafana Integration
+
+You can log and visualize data using **InfluxDB** + **Grafana**:
+
+![Grafana Example 1](screenshots/grafana/1.png)
+![Grafana Example 2](screenshots/grafana/2.png)
+![Grafana Example 3](screenshots/grafana/3.png)
+![Grafana Example 4](screenshots/grafana/4.png)
+
+---
+
+## Notes and Best Practices
+
+* Always back up your current configurations before editing.
+* Test each module separately before using `combined.yml`.
+* OTA updates may temporarily disable BLE connections (see `ota.on_begin` logic).
+* For debugging, increase logging:
+
+  ```yaml
+  logger:
+    level: DEBUG
+  ```
+
+  and check ESPHome logs for detailed output.
