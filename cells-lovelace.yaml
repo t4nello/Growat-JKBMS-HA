@@ -1,0 +1,43 @@
+type: custom:stack-in-card
+cards:
+  - type: markdown
+    content: |
+      <center><b>Cells</b></center>
+  - type: grid
+    square: false
+    columns: 2
+    cards:
+      - type: markdown
+        content: >
+          {% for i in range(1,9) -%}
+
+          **{{ "%02d"|format(i) }}.** {% if
+          states('sensor.esp32_pv_bms_max_voltage_cell')|int == i -%}<font
+          color="green">{{ states('sensor.esp32_pv_bms_cell_voltage_' ~
+          "%02d"|format(i))|float|round(3) }} V&nbsp;</font>{% elif
+          states('sensor.esp32_pv_bms_min_voltage_cell')|int == i -%}<font
+          color="red">{{ states('sensor.esp32_pv_bms_cell_voltage_' ~
+          "%02d"|format(i))|float|round(3) }} V&nbsp;</font>{% else -%}{{
+          states('sensor.esp32_pv_bms_cell_voltage_' ~
+          "%02d"|format(i))|float|round(3) }} V&nbsp;{% endif -%}/ {{
+          states('sensor.esp32_pv_bms_cell_resistance_'
+          "%02d"|format(i))|float|round(3) }} Ω
+
+          {% endfor -%}
+      - type: markdown
+        content: >
+          {% for i in range(9,17) -%}
+
+          **{{ "%02d"|format(i) }}.** {% if
+          states('sensor.esp32_pv_bms_max_voltage_cell')|int == i -%}<font
+          color="green">{{ states('sensor.esp32_pv_bms_cell_voltage_' ~
+          "%02d"|format(i))|float|round(3) }} V&nbsp;</font>{% elif
+          states('sensor.esp32_pv_bms_min_voltage_cell')|int == i -%}<font
+          color="red">{{ states('sensor.esp32_pv_bms_cell_voltage_' ~
+          "%02d"|format(i))|float|round(3) }} V&nbsp;</font>{% else -%}{{
+          states('sensor.esp32_pv_bms_cell_voltage_' ~
+          "%02d"|format(i))|float|round(3) }} V&nbsp;{% endif -%}/ {{
+          states('sensor.esp32_pv_bms_cell_resistance_'
+          "%02d"|format(i))|float|round(3) }} Ω
+
+          {% endfor -%}
