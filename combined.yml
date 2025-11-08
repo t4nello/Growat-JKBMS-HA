@@ -247,23 +247,23 @@ sensor:
     average_cell_voltage:
       name: "BMS average cell voltage"
     cell_voltage_1:
-      name: "BMS cell voltage 1"
+      name: "BMS cell voltage 01"
     cell_voltage_2:
-      name: "BMS cell voltage 2"
+      name: "BMS cell voltage 02"
     cell_voltage_3:
-      name: "BMS cell voltage 3"
+      name: "BMS cell voltage 03"
     cell_voltage_4:
-      name: "BMS cell voltage 4"
+      name: "BMS cell voltage 04"
     cell_voltage_5:
-      name: "BMS cell voltage 5"
+      name: "BMS cell voltage 05"
     cell_voltage_6:
-      name: "BMS cell voltage 6"
+      name: "BMS cell voltage 06"
     cell_voltage_7:
-      name: "BMS cell voltage 7"
+      name: "BMS cell voltage 07"
     cell_voltage_8:
-      name: "BMS cell voltage 8"
+      name: "BMS cell voltage 08"
     cell_voltage_9:
-      name: "BMS cell voltage 9"
+      name: "BMS cell voltage 09"
     cell_voltage_10:
       name: "BMS cell voltage 10"
     cell_voltage_11:
@@ -280,23 +280,23 @@ sensor:
       name: "BMS cell voltage 16"
 
     cell_resistance_1:
-      name: "BMS cell resistance 1"
+      name: "BMS cell resistance 01"
     cell_resistance_2:
-      name: "BMS cell resistance 2"
+      name: "BMS cell resistance 02"
     cell_resistance_3:
-      name: "BMS cell resistance 3"
+      name: "BMS cell resistance 03"
     cell_resistance_4:
-      name: "BMS cell resistance 4"
+      name: "BMS cell resistance 04"
     cell_resistance_5:
-      name: "BMS cell resistance 5"
+      name: "BMS cell resistance 05"
     cell_resistance_6:
-      name: "BMS cell resistance 6"
+      name: "BMS cell resistance 06"
     cell_resistance_7:
-      name: "BMS cell resistance 7"
+      name: "BMS cell resistance 07"
     cell_resistance_8:
-      name: "BMS cell resistance 8"
+      name: "BMS cell resistance 08"
     cell_resistance_9:
-      name: "BMS cell resistance 9"
+      name: "BMS cell resistance 09"
     cell_resistance_10:
       name: "BMS cell resistance 10"
     cell_resistance_11:
