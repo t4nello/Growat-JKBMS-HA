@@ -3,8 +3,8 @@ substitutions:
   bms0: "${name}_1"
   device_description: "Monitor and control a JK-BMS v11 via bluetooth"
   external_components_source: github://syssi/esphome-jk-bms@main
-  bms0_mac_address: C8:47:80:39:18:E0
-  bms0_protocol_version: JK02_32S
+  bms0_mac_address: #insert bms mac address
+  bms0_protocol_version: #refer to https://github.com/syssi/esphome-jk-bms
 
 esphome:
   name: ${name}-nx
@@ -240,23 +240,23 @@ sensor:
     average_cell_voltage:
       name: "${bms0} average cell voltage"
     cell_voltage_1:
-      name: "${bms0} cell voltage 1"
+      name: "${bms0} cell voltage 01"
     cell_voltage_2:
-      name: "${bms0} cell voltage 2"
+      name: "${bms0} cell voltage 02"
     cell_voltage_3:
-      name: "${bms0} cell voltage 3"
+      name: "${bms0} cell voltage 03"
     cell_voltage_4:
-      name: "${bms0} cell voltage 4"
+      name: "${bms0} cell voltage 04"
     cell_voltage_5:
-      name: "${bms0} cell voltage 5"
+      name: "${bms0} cell voltage 05"
     cell_voltage_6:
-      name: "${bms0} cell voltage 6"
+      name: "${bms0} cell voltage 06"
     cell_voltage_7:
-      name: "${bms0} cell voltage 7"
+      name: "${bms0} cell voltage 07"
     cell_voltage_8:
-      name: "${bms0} cell voltage 8"
+      name: "${bms0} cell voltage 08"
     cell_voltage_9:
-      name: "${bms0} cell voltage 9"
+      name: "${bms0} cell voltage 09"
     cell_voltage_10:
       name: "${bms0} cell voltage 10"
     cell_voltage_11:
@@ -273,23 +273,23 @@ sensor:
       name: "${bms0} cell voltage 16"
 
     cell_resistance_1:
-      name: "${bms0} cell resistance 1"
+      name: "${bms0} cell resistance 01"
     cell_resistance_2:
-      name: "${bms0} cell resistance 2"
+      name: "${bms0} cell resistance 02"
     cell_resistance_3:
-      name: "${bms0} cell resistance 3"
+      name: "${bms0} cell resistance 03"
     cell_resistance_4:
-      name: "${bms0} cell resistance 4"
+      name: "${bms0} cell resistance 04"
     cell_resistance_5:
-      name: "${bms0} cell resistance 5"
+      name: "${bms0} cell resistance 05"
     cell_resistance_6:
-      name: "${bms0} cell resistance 6"
+      name: "${bms0} cell resistance 06"
     cell_resistance_7:
-      name: "${bms0} cell resistance 7"
+      name: "${bms0} cell resistance 07"
     cell_resistance_8:
-      name: "${bms0} cell resistance 8"
+      name: "${bms0} cell resistance 08"
     cell_resistance_9:
-      name: "${bms0} cell resistance 9"
+      name: "${bms0} cell resistance 09"
     cell_resistance_10:
       name: "${bms0} cell resistance 10"
     cell_resistance_11:
