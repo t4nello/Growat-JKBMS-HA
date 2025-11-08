@@ -2,8 +2,8 @@ substitutions:
   name: esp32-pv
   device_description: "Monitor and control a JK-BMS and GROWATT Inverter"
   external_components_source: github://syssi/esphome-jk-bms@main
-  bms0_mac_address: C8:47:80:39:18:E0
-  bms0_protocol_version: JK02_32S
+  bms0_mac_address: #insert bms mac address
+  bms0_protocol_version: #refer to https://github.com/syssi/esphome-jk-bms
 
 esphome:
   name: ${name}
