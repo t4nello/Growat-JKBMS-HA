@@ -1,4 +1,4 @@
-# Growatt + JK-BMS ESPHome configurations (English)
+# Growatt + JK-BMS ESPHome configurations
 
 This repository contains ready-to-use ESPHome configurations to monitor and integrate a JK-BMS and a Growatt inverter.
 
