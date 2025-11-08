@@ -50,7 +50,7 @@ These files expose many entities (sensors, binary_sensors, text_sensors, switche
 
 ## Lovelace cards:
 Custom lovelace cards compatible with my yamls based on https://github.com/syssi/esphome-jk-bms/discussions/230
-[Outcome of the lovelace](lovelace.png)
+![Outcome of the lovelace](lovelace.png)
 
 ## Notes and best practices
 
